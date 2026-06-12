@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+                             http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+
+    <servlet>
+        <servlet-name>LibraryServlet</servlet-name>
+        <servlet-class>neoyomi.servlet.LibraryServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>KomikServlet</servlet-name>
+        <servlet-class>neoyomi.servlet.KomikServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>NovelServlet</servlet-name>
+        <servlet-class>neoyomi.servlet.NovelServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>SaveServlet</servlet-name>
+        <servlet-class>neoyomi.servlet.SaveServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>ScraperServlet</servlet-name>
+        <servlet-class>neoyomi.servlet.ScraperServlet</servlet-class>
+    </servlet>
+    <!-- PERBAIKAN: HistoryServlet sebelumnya tidak terdaftar di sini -->
+    <servlet>
+        <servlet-name>HistoryServlet</servlet-name>
+        <servlet-class>neoyomi.servlet.HistoryServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>LibraryServlet</servlet-name>
+        <url-pattern>/LibraryServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>KomikServlet</servlet-name>
+        <url-pattern>/api/komik</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>NovelServlet</servlet-name>
+        <url-pattern>/api/novel</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SaveServlet</servlet-name>
+        <url-pattern>/api/save</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ScraperServlet</servlet-name>
+        <url-pattern>/api/scrape</url-pattern>
+    </servlet-mapping>
+    <!-- PERBAIKAN: Mapping untuk HistoryServlet -->
+    <servlet-mapping>
+        <servlet-name>HistoryServlet</servlet-name>
+        <url-pattern>/api/history</url-pattern>
+    </servlet-mapping>
+
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
+</web-app>

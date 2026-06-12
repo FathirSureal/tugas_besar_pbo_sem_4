@@ -1,0 +1,138 @@
+/* TEMA GELAP ALA TACHIYOMI */
+body { 
+    font-family: 'Segoe UI', Tahoma, sans-serif; 
+    background-color: #121212; 
+    color: #ffffff; 
+    margin: 0; padding: 0;
+}
+
+.header {
+    background-color: #1e1e1e; padding: 15px 20px;
+    display: flex; align-items: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    position: sticky; top: 0; z-index: 100;
+}
+.header h1 { margin: 0; font-size: 1.5em; flex-grow: 1; }
+
+.controls { padding: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+button { 
+    padding: 8px 16px; border: none; border-radius: 20px; 
+    background-color: #2c2c2c; color: #e0e0e0; cursor: pointer; 
+    font-weight: bold; display: flex; align-items: center; gap: 5px;
+}
+button:hover { background-color: #3d3d3d; }
+button.active { background-color: #8ab4f8; color: #121212; }
+
+.search-container { padding: 0 20px 10px 20px; display: flex; gap: 10px; }
+.search-input {
+    flex-grow: 1; padding: 12px 20px; border-radius: 25px; border: none;
+    background-color: #1e1e1e; color: white; font-size: 0.95em;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.search-input:focus { outline: 2px solid #8ab4f8; }
+
+.grid-container { 
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+    gap: 12px; padding: 20px;
+}
+
+.card { 
+    background-color: #2c2c2c; border-radius: 8px; overflow: hidden;
+    position: relative; cursor: pointer; transition: transform 0.2s;
+    aspect-ratio: 2 / 3; background-size: cover; background-position: center;
+}
+.card:hover { transform: scale(1.05); }
+
+.card-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    padding: 30px 10px 10px 10px; display: flex; flex-direction: column; justify-content: flex-end;
+}
+
+.judul { font-size: 0.9em; font-weight: bold; text-shadow: 1px 1px 3px black; margin: 0; }
+.badge { font-size: 0.7em; color: #aaaaaa; margin-top: 3px; }
+
+/* HALAMAN DETAIL MANGA */
+.detail-container { padding: 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+.detail-cover { 
+    width: 200px; 
+    aspect-ratio: 2/3; 
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: top center; 
+    border-radius: 8px; 
+}
+.detail-info { flex: 1; min-width: 300px; }
+
+.synopsis-box {
+    background: #1e1e1e;
+    border-left: 3px solid #8ab4f8;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 10px 0 20px 0;
+    color: #cccccc;
+    line-height: 1.65;
+    font-size: 0.9em;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+/* ======================================
+   FILTER BAHASA CHAPTER
+   ====================================== */
+.lang-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.lang-btn {
+    padding: 5px 14px;
+    border-radius: 16px;
+    font-size: 0.78em;
+    font-weight: bold;
+    background-color: #2c2c2c;
+    color: #cccccc;
+    border: 1px solid #3d3d3d;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.lang-btn:hover { background-color: #3d3d3d; }
+.lang-btn.active {
+    background-color: #8ab4f8;
+    color: #121212;
+    border-color: #8ab4f8;
+}
+
+/* Badge bahasa kecil di samping "Chapter X" */
+.lang-badge {
+    display: inline-block;
+    font-size: 0.65em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: bold;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+.lang-id { background-color: #cc2a2a; color: #fff; }
+.lang-en { background-color: #1a6bb5; color: #fff; }
+
+/* ======================================
+   CHAPTER LIST
+   ====================================== */
+.chapter-list { margin-top: 4px; background: #1e1e1e; border-radius: 8px; padding: 10px; }
+.chapter-item { 
+    padding: 12px; border-bottom: 1px solid #2c2c2c; cursor: pointer; 
+    display: flex; justify-content: space-between; align-items: center;
+}
+.chapter-item:hover { background: #2c2c2c; }
+.chapter-item:last-child { border-bottom: none; }
+
+.chapter-num   { font-weight: bold; color: #ffffff; font-size: 0.9em; }
+.chapter-title { color: #aaaaaa; font-size: 0.82em; margin-top: 2px; font-style: italic; }
+
+/* RUANG BACA */
+.reader-container { display: flex; flex-direction: column; align-items: center; background: #000; padding: 20px 0; }
+.reader-page { width: 100%; max-width: 700px; margin-bottom: 5px; display: block; }
