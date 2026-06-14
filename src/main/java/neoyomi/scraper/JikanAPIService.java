@@ -7,6 +7,8 @@ import com.google.gson.JsonParser;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import neoyomi.model.Chapter;
@@ -15,22 +17,51 @@ import neoyomi.model.ScrapedManga;
 
 public class JikanAPIService {
 
-    private static final String API_URL   = "https://api.jikan.moe/v4/manga?q=";
+    private static final String API_URL = "https://api.jikan.moe/v4/manga";
     private static final String DETAIL_URL = "https://api.jikan.moe/v4/manga/%d/full";
 
-    // ==============================
-    // SEARCH MANGA
-    // ==============================
+    // =========================================================
+    // SEARCH DEFAULT
+    // =========================================================
     public List<ScrapedManga> cariKomik(String keyword) {
+        return cariKomik(keyword, "all", "all");
+    }
+
+    // =========================================================
+    // SEARCH DENGAN FILTER
+    // =========================================================
+    public List<ScrapedManga> cariKomik(String keyword,
+                                        String type,
+                                        String genre) {
 
         List<ScrapedManga> hasil = new ArrayList<>();
 
         try {
 
-            URL url = new URL(API_URL + keyword.replace(" ", "%20"));
+            StringBuilder urlBuilder = new StringBuilder(API_URL);
+            urlBuilder.append("?q=");
+            urlBuilder.append(
+                    URLEncoder.encode(keyword, StandardCharsets.UTF_8.toString())
+            );
+
+            urlBuilder.append("&limit=25");
+
+            // ==========================
+            // FILTER TYPE
+            // ==========================
+            if (type != null && !type.equalsIgnoreCase("all")) {
+                urlBuilder.append("&type=");
+                urlBuilder.append(type);
+            }
+
+            URL url = new URL(urlBuilder.toString());
+
+            System.out.println("Jikan URL : " + url);
+
             HttpURLConnection conn = bukaKoneksi(url);
 
-            if (conn.getResponseCode() != 200) return hasil;
+            if (conn.getResponseCode() != 200)
+                return hasil;
 
             JsonObject root = JsonParser.parseReader(
                     new InputStreamReader(conn.getInputStream()))
@@ -42,29 +73,78 @@ public class JikanAPIService {
 
                 JsonObject obj = element.getAsJsonObject();
 
-                int    malId     = obj.get("mal_id").getAsInt();
-                String judul     = obj.get("title").getAsString();
+                int malId = obj.get("mal_id").getAsInt();
+
+                String judul = obj.get("title").getAsString();
+
                 String urlTarget = obj.get("url").getAsString();
-                String gambar    = obj.getAsJsonObject("images")
-                                      .getAsJsonObject("jpg")
-                                      .get("image_url").getAsString();
+
+                String gambar =
+                        obj.getAsJsonObject("images")
+                           .getAsJsonObject("jpg")
+                           .get("image_url")
+                           .getAsString();
 
                 String synopsis = "";
-                if (obj.has("synopsis") && !obj.get("synopsis").isJsonNull()) {
-                    synopsis = obj.get("synopsis").getAsString();
-                    if (synopsis.length() > 300)
-                        synopsis = synopsis.substring(0, 300) + "...";
-                }
 
-                List<String> genres = new ArrayList<>();
-                if (obj.has("genres")) {
-                    for (JsonElement g : obj.getAsJsonArray("genres")) {
-                        genres.add(g.getAsJsonObject().get("name").getAsString());
+                if (obj.has("synopsis") && !obj.get("synopsis").isJsonNull()) {
+
+                    synopsis = obj.get("synopsis").getAsString();
+
+                    if (synopsis.length() > 300) {
+                        synopsis = synopsis.substring(0, 300) + "...";
                     }
                 }
 
-                hasil.add(new ScrapedManga(malId, judul, urlTarget, gambar,
-                                           genres, synopsis, new ArrayList<>()));
+                List<String> genres = new ArrayList<>();
+
+                if (obj.has("genres")) {
+
+                    for (JsonElement g : obj.getAsJsonArray("genres")) {
+
+                        genres.add(
+                                g.getAsJsonObject()
+                                 .get("name")
+                                 .getAsString()
+                        );
+
+                    }
+
+                }
+
+                // ==========================
+                // FILTER GENRE
+                // ==========================
+                if (genre != null && !genre.equalsIgnoreCase("all")) {
+
+                    boolean cocok = false;
+
+                    for (String g : genres) {
+
+                        if (g.equalsIgnoreCase(genre)) {
+                            cocok = true;
+                            break;
+                        }
+
+                    }
+
+                    if (!cocok) {
+                        continue;
+                    }
+                }
+
+                hasil.add(
+                        new ScrapedManga(
+                                malId,
+                                judul,
+                                urlTarget,
+                                gambar,
+                                genres,
+                                synopsis,
+                                new ArrayList<>()
+                        )
+                );
+
             }
 
         } catch (Exception e) {
@@ -74,26 +154,26 @@ public class JikanAPIService {
         return hasil;
     }
 
-    // ==============================
-    // DETAIL MANGA — overload lama (tanpa filter lang, default "all")
-    // Tetap ada agar kode lain yang memanggil versi ini tidak error compile.
-    // ==============================
+    // =========================================================
+    // DETAIL MANGA
+    // =========================================================
     public MangaDetail ambilDetailManga(int malId) {
         return ambilDetailManga(malId, "all");
     }
 
-    // ==============================
-    // DETAIL MANGA — versi baru dengan filter bahasa
-    // lang: "id" | "en" | "all"
-    // ==============================
+    // =========================================================
+    // DETAIL MANGA DENGAN FILTER BAHASA
+    // =========================================================
     public MangaDetail ambilDetailManga(int malId, String lang) {
 
         try {
 
             URL url = new URL(String.format(DETAIL_URL, malId));
+
             HttpURLConnection conn = bukaKoneksi(url);
 
-            if (conn.getResponseCode() != 200) return null;
+            if (conn.getResponseCode() != 200)
+                return null;
 
             JsonObject root = JsonParser.parseReader(
                     new InputStreamReader(conn.getInputStream()))
@@ -101,28 +181,39 @@ public class JikanAPIService {
 
             JsonObject data = root.getAsJsonObject("data");
 
-            String judul   = data.get("title").getAsString();
-            String gambar  = data.getAsJsonObject("images")
-                                 .getAsJsonObject("jpg")
-                                 .get("large_image_url").getAsString();
+            String judul =
+                    data.get("title").getAsString();
+
+            String gambar =
+                    data.getAsJsonObject("images")
+                        .getAsJsonObject("jpg")
+                        .get("large_image_url")
+                        .getAsString();
 
             String synopsis = "";
-            if (data.has("synopsis") && !data.get("synopsis").isJsonNull()) {
+
+            if (data.has("synopsis") &&
+                    !data.get("synopsis").isJsonNull()) {
+
                 synopsis = data.get("synopsis").getAsString();
             }
 
             List<String> genres = new ArrayList<>();
+
             if (data.has("genres")) {
+
                 for (JsonElement g : data.getAsJsonArray("genres")) {
-                    genres.add(g.getAsJsonObject().get("name").getAsString());
+
+                    genres.add(
+                            g.getAsJsonObject()
+                             .get("name")
+                             .getAsString()
+                    );
+
                 }
+
             }
 
-            // ===================================================
-            // Ambil chapter dari MangaDex dengan filter bahasa.
-            // Hanya satu kali pemanggilan MangaDex di sini.
-            // DetailServlet TIDAK memanggil MangaDex lagi setelah ini.
-            // ===================================================
             MangaDexService mangaDex = new MangaDexService();
 
             System.out.println("Judul dari Jikan = " + judul);
@@ -139,25 +230,41 @@ public class JikanAPIService {
 
             System.out.println("Total Chapter (" + lang + ") = " + chapters.size());
 
-            return new MangaDetail(malId, judul, gambar, synopsis, genres, chapters);
+            return new MangaDetail(
+                    malId,
+                    judul,
+                    gambar,
+                    synopsis,
+                    genres,
+                    chapters
+            );
 
         } catch (Exception e) {
+
             e.printStackTrace();
+
         }
 
         return null;
     }
 
-    // ==============================
-    // Helper: buka koneksi HTTP GET
-    // ==============================
+    // =========================================================
+    // HTTP CONNECTION
+    // =========================================================
     private HttpURLConnection bukaKoneksi(URL url) throws Exception {
-        System.out.println("HTTP GET: " + url);
+
+        System.out.println("HTTP GET : " + url);
+
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
         conn.setRequestMethod("GET");
+
         conn.setRequestProperty("User-Agent", "NeoYomiApp/1.0");
+
         conn.setConnectTimeout(7000);
+
         conn.setReadTimeout(7000);
+
         return conn;
     }
 }
