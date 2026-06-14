@@ -22,12 +22,26 @@ public class ScraperServlet extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         String keyword = request.getParameter("search");
-        if (keyword == null) {
-            keyword = "";
-        }
+
+if (keyword == null) {
+    keyword = "";
+}
+
+String type = request.getParameter("type");
+
+if (type == null) {
+    type = "all";
+}
+
+String genre = request.getParameter("genre");
+
+if (genre == null) {
+    genre = "all";
+}
         
         JikanAPIService apiService = new JikanAPIService();
-        List<ScrapedManga> hasil = apiService.cariKomik(keyword);
+        List<ScrapedManga> hasil =
+        apiService.cariKomik(keyword, type, genre);
         
         try (PrintWriter out = response.getWriter()) {
             out.print(new Gson().toJson(hasil));
