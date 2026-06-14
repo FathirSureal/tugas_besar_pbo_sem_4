@@ -136,3 +136,74 @@ button.active { background-color: #8ab4f8; color: #121212; }
 /* RUANG BACA */
 .reader-container { display: flex; flex-direction: column; align-items: center; background: #000; padding: 20px 0; }
 .reader-page { width: 100%; max-width: 700px; margin-bottom: 5px; display: block; }
+/* ======================================
+   FILTER TIPE & GENRE CHIPS
+   ====================================== */
+#area-filter-tipe,
+#area-filter-browse {
+    padding: 0 20px 4px 20px;
+}
+
+.filter-section {
+    margin-bottom: 8px;
+}
+
+.filter-label {
+    font-size: 0.72em;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Chip filter — lebih kecil dari button nav */
+.chip {
+    padding: 4px 12px;
+    border: 1px solid #3d3d3d;
+    border-radius: 16px;
+    background-color: #1e1e1e;
+    color: #cccccc;
+    cursor: pointer;
+    font-size: 0.78em;
+    font-weight: 500;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.chip:hover {
+    background-color: #2c2c2c;
+    border-color: #8ab4f8;
+}
+.chip.active {
+    background-color: #8ab4f8;
+    color: #121212;
+    border-color: #8ab4f8;
+    font-weight: bold;
+}
+
+/* Badge tipe di atas kartu ekstensi */
+.type-badge {
+    display: inline-block;
+    font-size: 0.65em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    align-self: flex-start;
+}
+
+/* Genre mini di bawah nama ekstensi */
+.genre-mini {
+    font-size: 0.65em;
+    color: #8ab4f8;
+    margin-top: 2px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
