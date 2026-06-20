@@ -9,7 +9,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
+import java.net.InetAddress;
 import neoyomi.model.Chapter;
 import neoyomi.model.MangaDetail;
 import neoyomi.scraper.JikanAPIService;
@@ -20,6 +20,7 @@ public class DetailServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response)
+            
             throws ServletException, IOException {
 
         response.setContentType("application/json");
@@ -57,7 +58,9 @@ public class DetailServlet extends HttpServlet {
             // Di dalam ambilDetailManga() sudah ada pemanggilan MangaDex
             // untuk mengambil chapter list → TIDAK perlu dipanggil lagi di sini.
             // ===========================
-
+            System.out.println("JAVA VERSION = " + System.getProperty("java.version"));
+            System.out.println("JAVA HOME = " + System.getProperty("java.home"));
+            System.out.println("JAVA VENDOR = " + System.getProperty("java.vendor"));
             JikanAPIService jikan = new JikanAPIService();
 
             // FIX: Teruskan parameter lang agar chapter langsung difilter
