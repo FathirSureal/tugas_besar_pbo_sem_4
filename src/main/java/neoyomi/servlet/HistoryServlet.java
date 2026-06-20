@@ -16,27 +16,25 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import neoyomi.util.DatabaseConnection; // Pakai util terpusat, bukan hardcode
+import javax.servlet.http.HttpSession;
+import neoyomi.util.DatabaseConnection;
 
-// PERBAIKAN 1: Tambah @WebServlet agar servlet ini terdaftar
-// (sebelumnya hanya pakai web.xml tapi entry-nya tidak ada)
 @WebServlet(name = "HistoryServlet", urlPatterns = {"/api/history"})
 public class HistoryServlet extends HttpServlet {
 
-    // PERBAIKAN 2: Buat tabel otomatis saat servlet pertama kali diinisialisasi
-    // sehingga tidak perlu jalankan SQL manual di HeidiSQL
     @Override
     public void init() throws ServletException {
-        String createTable = 
+        String createTable =
             "CREATE TABLE IF NOT EXISTS `reading_history` (" +
             "  `id` INT NOT NULL AUTO_INCREMENT, " +
             "  `manga_id` VARCHAR(500) NOT NULL, " +
+            "  `user_id` INT NOT NULL DEFAULT 0, " +
             "  `judul` VARCHAR(255) NOT NULL, " +
             "  `gambar_sampul` TEXT, " +
             "  `tags` VARCHAR(500), " +
             "  `waktu_baca` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
             "  PRIMARY KEY (`id`), " +
-            "  UNIQUE KEY `manga_id` (`manga_id`(255))" + // UNIQUE agar ON DUPLICATE bisa kerja
+            "  UNIQUE KEY `manga_user` (`manga_id`(255), `user_id`)" +
             ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -49,28 +47,38 @@ public class HistoryServlet extends HttpServlet {
         }
     }
 
-    // GET: Mengambil daftar riwayat untuk ditampilkan di halaman History
+    // Helper: ambil userId dari session, return 0 kalau belum login
+    private int getUserId(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("userId") == null) return 0;
+        return (int) session.getAttribute("userId");
+    }
+
+    // GET: Ambil history milik user yang sedang login
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
+        int userId = getUserId(request);
         List<Map<String, String>> historyList = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             if (conn != null) {
-                String sql = "SELECT * FROM reading_history ORDER BY waktu_baca DESC";
-                try (PreparedStatement stmt = conn.prepareStatement(sql);
-                     ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        Map<String, String> item = new HashMap<>();
-                        item.put("mangaId",      rs.getString("manga_id"));
-                        item.put("judul",        rs.getString("judul"));
-                        item.put("gambarSampul", rs.getString("gambar_sampul"));
-                        item.put("tags",         rs.getString("tags"));
-                        item.put("waktuBaca",    rs.getString("waktu_baca"));
-                        historyList.add(item);
+                String sql = "SELECT * FROM reading_history WHERE user_id = ? ORDER BY waktu_baca DESC";
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    stmt.setInt(1, userId);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            Map<String, String> item = new HashMap<>();
+                            item.put("mangaId",      rs.getString("manga_id"));
+                            item.put("judul",        rs.getString("judul"));
+                            item.put("gambarSampul", rs.getString("gambar_sampul"));
+                            item.put("tags",         rs.getString("tags"));
+                            item.put("waktuBaca",    rs.getString("waktu_baca"));
+                            historyList.add(item);
+                        }
                     }
                 }
             }
@@ -84,21 +92,76 @@ public class HistoryServlet extends HttpServlet {
         }
     }
 
-    // POST: Menyimpan/update riwayat saat user membuka chapter
+    // POST: Simpan, hapusSatu, hapusSemua
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("application/json");
         request.setCharacterEncoding("UTF-8");
 
-        String mangaId     = request.getParameter("mangaId");
-        String judul       = request.getParameter("judul");
+        int userId = getUserId(request);
+        String action = request.getParameter("action");
+
+        // Hapus semua history milik user ini
+        if ("hapusSemua".equals(action)) {
+            Map<String, String> hasil = new HashMap<>();
+            try (Connection conn = DatabaseConnection.getConnection()) {
+                if (conn != null) {
+                    String sql = "DELETE FROM reading_history WHERE user_id = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                        stmt.setInt(1, userId);
+                        stmt.executeUpdate();
+                    }
+                    hasil.put("status", "success");
+                } else {
+                    hasil.put("status", "error");
+                    hasil.put("message", "Koneksi database gagal");
+                }
+            } catch (Exception e) {
+                hasil.put("status", "error");
+                hasil.put("message", e.getMessage());
+            }
+            try (PrintWriter out = response.getWriter()) {
+                out.print(new Gson().toJson(hasil));
+            }
+            return;
+        }
+
+        // Hapus satu history milik user ini
+        if ("hapusSatu".equals(action)) {
+            String mangaId = request.getParameter("mangaId");
+            Map<String, String> hasil = new HashMap<>();
+            try (Connection conn = DatabaseConnection.getConnection()) {
+                if (conn != null) {
+                    String sql = "DELETE FROM reading_history WHERE manga_id = ? AND user_id = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                        stmt.setString(1, mangaId);
+                        stmt.setInt(2, userId);
+                        stmt.executeUpdate();
+                    }
+                    hasil.put("status", "success");
+                } else {
+                    hasil.put("status", "error");
+                    hasil.put("message", "Koneksi database gagal");
+                }
+            } catch (Exception e) {
+                hasil.put("status", "error");
+                hasil.put("message", e.getMessage());
+            }
+            try (PrintWriter out = response.getWriter()) {
+                out.print(new Gson().toJson(hasil));
+            }
+            return;
+        }
+
+        // Default: simpan/update history
+        String mangaId      = request.getParameter("mangaId");
+        String judul        = request.getParameter("judul");
         String gambarSampul = request.getParameter("gambarSampul");
-        String tags        = request.getParameter("tags");
+        String tags         = request.getParameter("tags");
 
         Map<String, String> jsonResponse = new HashMap<>();
 
-        // Validasi input dasar
         if (mangaId == null || mangaId.trim().isEmpty() ||
             judul == null || judul.trim().isEmpty()) {
             jsonResponse.put("status", "error");
@@ -111,10 +174,9 @@ public class HistoryServlet extends HttpServlet {
 
         try (Connection conn = DatabaseConnection.getConnection()) {
             if (conn != null) {
-                // UPSERT: kalau manga_id sudah ada, update waktu_baca saja
-                String sql = 
-                    "INSERT INTO reading_history (manga_id, judul, gambar_sampul, tags) " +
-                    "VALUES (?, ?, ?, ?) " +
+                String sql =
+                    "INSERT INTO reading_history (manga_id, user_id, judul, gambar_sampul, tags) " +
+                    "VALUES (?, ?, ?, ?, ?) " +
                     "ON DUPLICATE KEY UPDATE " +
                     "  judul = VALUES(judul), " +
                     "  gambar_sampul = VALUES(gambar_sampul), " +
@@ -123,9 +185,10 @@ public class HistoryServlet extends HttpServlet {
 
                 try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                     stmt.setString(1, mangaId);
-                    stmt.setString(2, judul);
-                    stmt.setString(3, gambarSampul);
-                    stmt.setString(4, tags);
+                    stmt.setInt(2, userId);
+                    stmt.setString(3, judul);
+                    stmt.setString(4, gambarSampul);
+                    stmt.setString(5, tags);
                     stmt.executeUpdate();
                 }
                 jsonResponse.put("status", "success");
