@@ -218,7 +218,7 @@ public class JikanAPIService {
 
             System.out.println("Judul dari Jikan = " + judul);
 
-            String mangaDexId = mangaDex.cariMangaId(judul);
+            String mangaDexId = mangaDex.cariMangaId(judul, malId);
 
             System.out.println("MangaDex ID = " + mangaDexId);
 
