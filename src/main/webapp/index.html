@@ -1,553 +1,860 @@
 <!DOCTYPE html>
 <html lang="id">
-    <link rel="stylesheet" href="css/style.css">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoYomi - Web Manga Reader</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <div class="header">
-        <h1 id="app-title" style="transition: color 0.2s;">NeoYomi Extensions</h1>
-    </div>
-    
-    <div class="controls" id="menu-utama">
-        <button id="btn-komik"   class="active" onclick="ubahTipe('komik')">📚 Ekstensi Komik</button>
-        <button id="btn-novel"   onclick="ubahTipe('novel')">📜 Ekstensi Novel</button>
-        <button id="btn-history" onclick="bukaHalamanHistory()">🕒 History</button>
-    </div>
+<div class="header">
+    <h1 id="app-title">NeoYomi Extensions</h1>
+</div>
 
-    <!-- =============================================
-         FILTER TIPE KOMIK (Manga / Manhwa / dll)
-         Hanya muncul di tab Ekstensi Komik
-         ============================================= -->
-    <div id="area-filter-tipe" style="display:none;">
-        <div class="filter-section">
-            <div class="filter-label">📂 Tipe</div>
-            <div class="filter-chips" id="chips-tipe">
-                <button class="chip active" data-value="all"     onclick="setFilterTipe(this)">🌐 Semua</button>
-                <button class="chip"        data-value="manga"   onclick="setFilterTipe(this)">🇯🇵 Manga</button>
-                <button class="chip"        data-value="manhwa"  onclick="setFilterTipe(this)">🇰🇷 Manhwa</button>
-                <button class="chip"        data-value="manhua"  onclick="setFilterTipe(this)">🇨🇳 Manhua</button>
-                <button class="chip"        data-value="comics"  onclick="setFilterTipe(this)">🦸 Comics</button>
-            </div>
+<div class="controls" id="menu-utama">
+    <button id="btn-komik"   class="active" onclick="ubahTipe('komik')">📚 Ekstensi Komik</button>
+    <button id="btn-novel"   onclick="ubahTipe('novel')">📜 Ekstensi Novel</button>
+    <button id="btn-library" onclick="bukaHalamanLibrary()">🗂️ Library</button>
+    <button id="btn-downloaded" onclick="bukaHalamanDownloaded()">⬇️ Downloaded</button>
+    <button id="btn-history" onclick="bukaHalamanHistory()">🕒 History</button>
+    <button id="btn-admin"   onclick="bukaPanelAdmin()" style="display:none;background-color:#e74c3c;">🛠️ Panel Admin</button>
+</div>
+
+<div id="area-akun" style="padding:0 20px 15px 20px;display:flex;gap:10px;align-items:center;"></div>
+
+<div id="area-filter-tipe" style="display:none;">
+    <div class="filter-section">
+        <div class="filter-label">📂 Tipe</div>
+        <div class="filter-chips" id="chips-tipe">
+            <button class="chip active" data-value="all"     onclick="setFilterTipe(this)">🌐 Semua</button>
+            <button class="chip"        data-value="manga"   onclick="setFilterTipe(this)">🇯🇵 Manga</button>
+            <button class="chip"        data-value="manhwa"  onclick="setFilterTipe(this)">🇰🇷 Manhwa</button>
+            <button class="chip"        data-value="manhua"  onclick="setFilterTipe(this)">🇨🇳 Manhua</button>
+            <button class="chip"        data-value="comics"  onclick="setFilterTipe(this)">🦸 Comics</button>
+            <button class="chip"        data-value="webtoon" onclick="setFilterTipe(this)">📱 Webtoon</button>
         </div>
-        <div class="filter-section" id="area-filter-genre" style="display:none;">
-            <div class="filter-label">🏷️ Genre</div>
-            <div class="filter-chips" id="chips-genre">
-                <button class="chip active" data-value="all" onclick="setFilterGenre(this)">✨ Semua Genre</button>
-                <!-- Genre akan diisi dinamis dari API -->
-            </div>
-        </div>
-    </div>
+    </div>    
+</div>
 
-    <div class="search-container" id="area-pencarian" style="display: none;">
-        <input type="text" id="input-keyword" class="search-input" placeholder="🔍 Ketik judul manga yang ingin dicari... (Tekan Enter)">
-        <button onclick="pemicuCariManga()" style="background-color: #8ab4f8; color: #121212; border-radius: 25px; padding: 0 20px;">Cari</button>
-    </div>
+<div class="search-container" id="area-pencarian" style="display:none;">
+    <input type="text" id="input-keyword" class="search-input" placeholder="🔍 Ketik judul manga... (Tekan Enter)">
+    <button onclick="pemicuCariManga()" style="background-color:#8ab4f8;color:#121212;border-radius:25px;padding:0 20px;">Cari</button>
+</div>
 
-    <!-- Filter genre di dalam halaman browse manga (hasil search) -->
-    <div id="area-filter-browse" style="display:none;">
-        <div class="filter-section">
-            <div class="filter-label">🏷️ Filter Genre</div>
-            <div class="filter-chips" id="chips-browse-genre">
-                <button class="chip active" data-value="all" onclick="setFilterBrowse(this)">✨ Semua</button>
-            </div>
+<div id="area-filter-browse" style="display:none;">
+    <div class="filter-section">
+        <div class="filter-label">🏷️ Filter Genre</div>
+        <div class="filter-chips" id="chips-browse-genre">
+            <button class="chip active" data-value="all" onclick="setFilterBrowse(this)">✨ Semua</button>
         </div>
     </div>
+</div>
 
-    <div id="konten-dinamis">
-        <div class="grid-container" id="rak-konten"></div>
-    </div>
+<div id="konten-dinamis">
+    <div class="grid-container" id="rak-konten"></div>
+</div>
 
-    <script>
-        let tipeAktif           = 'komik';
-        let dataMangaSaatIni    = {};
-        let namaEkstensiAktif   = '';
-        let filterBahasaAktif   = 'all';
-        let filterTipeAktif     = 'all';     // filter tipe komik di halaman ekstensi
-        let filterGenreAktif    = 'all';     // filter genre di halaman ekstensi
-        let filterBrowseAktif   = 'all';     // filter genre di halaman browse
-        let malIdDetailAktif    = null;
-        let dataBrowseSaatIni   = [];        // cache hasil scrape untuk client-side filter
+<script>
+// ============================================================
+// STATE GLOBAL
+// ============================================================
+let tipeAktif           = 'komik';
+let namaEkstensiAktif   = '';
+let filterBahasaAktif   = 'all';
+let filterTipeAktif     = 'all';
+let filterGenreAktif    = 'all';
+let filterBrowseAktif   = 'all';
+let malIdDetailAktif    = null;
+let mangaIdDetailAktif  = null; // mangaId string untuk library
+let dataBrowseSaatIni   = [];
+let dataEkstensiSaatIni = [];
+let dataMangaSaatIni    = {};
+let statusLoginAktif    = { loggedIn: false };
 
-        // ============================================================
-        // 1. DAFTAR EKSTENSI
-        // ============================================================
-        function ubahTipe(tipeBaru) {
-            tipeAktif = tipeBaru;
-            document.getElementById('btn-komik').className   = (tipeBaru === 'komik') ? 'active' : '';
-            document.getElementById('btn-novel').className   = (tipeBaru === 'novel') ? 'active' : '';
-            document.getElementById('btn-history').className = '';
+// ============================================================
+// 1. TAB UTAMA
+// ============================================================
+function ubahTipe(tipeBaru) {
+    tipeAktif = tipeBaru;
+    document.getElementById('btn-komik').className   = (tipeBaru === 'komik') ? 'active' : '';
+    document.getElementById('btn-novel').className   = (tipeBaru === 'novel') ? 'active' : '';
+    document.getElementById('btn-history').className = '';
+    document.getElementById('btn-library').className = '';
+    document.getElementById('btn-downloaded').className = '';
+    document.getElementById('menu-utama').style.display         = 'flex';
+    document.getElementById('area-pencarian').style.display     = 'none';
+    document.getElementById('area-filter-browse').style.display = 'none';
+    document.getElementById('area-filter-tipe').style.display   = (tipeBaru === 'komik') ? 'block' : 'none';
 
-            document.getElementById('menu-utama').style.display      = 'flex';
-            document.getElementById('area-pencarian').style.display  = 'none';
-            document.getElementById('area-filter-browse').style.display = 'none';
+    const h = document.getElementById('app-title');
+    h.innerText    = 'NeoYomi Extensions';
+    h.style.cursor = 'default';
+    h.onclick      = null;
 
-            // Tampilkan filter tipe hanya untuk komik
-            document.getElementById('area-filter-tipe').style.display =
-                (tipeBaru === 'komik') ? 'block' : 'none';
+    document.getElementById('konten-dinamis').innerHTML =
+        '<div class="grid-container" id="rak-konten"></div>';
 
-            const headerTitle = document.getElementById('app-title');
-            headerTitle.innerText    = 'NeoYomi Extensions';
-            headerTitle.style.cursor = 'default';
-            headerTitle.onclick      = null;
+    filterTipeAktif  = 'all';
+    filterGenreAktif = 'all';
+    resetChips('chips-tipe');
+    muatDaftarEkstensi();
+}
 
-            document.getElementById('konten-dinamis').innerHTML =
-                '<div class="grid-container" id="rak-konten"></div>';
+function resetChips(id) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.querySelectorAll('.chip').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.value === 'all'));
+}
 
-            // Reset filter tipe & genre ke "all" saat ganti tab
-            filterTipeAktif  = 'all';
-            filterGenreAktif = 'all';
-            resetChips('chips-tipe');
-            resetChips('chips-genre');
-
-            muatDaftarEkstensi();
-
-            // Muat genre hanya untuk komik
-        }
-
-        // Reset semua chip ke "all" aktif
-        function resetChips(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.querySelectorAll('.chip').forEach(c => {
-                c.classList.toggle('active', c.dataset.value === 'all');
-            });
-        }
-
-        function muatDaftarEkstensi() {
-            const rak = document.getElementById('rak-konten');
-            if (!rak) return;
-            rak.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:20px; color:#aaa;">Memuat ekstensi...</p>';
-
-            let url = `api/${tipeAktif}?search=`;
-            if (tipeAktif === 'komik') {
-                url += `&type=${filterTipeAktif}&genre=${filterGenreAktif}`;
-            }
-
-            fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    let html = '';
-                    if (!data || data.length === 0) {
-                        html = '<p style="text-align:center; grid-column:1/-1; color:#aaa; padding:40px;">Tidak ada ekstensi ditemukan.</p>';
-                    } else {
-                        data.forEach(item => {
-                            const info     = item.version ? item.version : item.site;
-                            const logo     = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name.charAt(0))}&background=2c2c2c&color=fff&size=256`;
-                            const typeBadge = tipeAktif === 'komik' ? getBadgeTipe(item.type) : '';
-                            const genres   = (item.genres && item.genres.length > 0)
-                                             ? item.genres.slice(0,3).join(', ') : '';
-
-                            html += `
-                            <div class="card" style="background-image:url('${logo}')" onclick="bukaEkstensi('${item.name}')">
-                                <div class="card-overlay">
-                                    ${typeBadge}
-                                    <div class="judul">${item.name}</div>
-                                    <div class="badge">${info} • ${item.lang.toUpperCase()}</div>
-                                    ${genres ? `<div class="genre-mini">${genres}</div>` : ''}
-                                </div>
-                            </div>`;
-                        });
-                    }
-                    rak.innerHTML = html;
-                })
-                .catch(() => {
-                    rak.innerHTML = '<p style="color:red; text-align:center; grid-column:1/-1; padding:20px;">Gagal terhubung ke database server.</p>';
-                });
-        }
-
-        // Badge tipe komik dengan warna berbeda
-        function getBadgeTipe(type) {
-            const map = {
-                manga:   { emoji: '🇯🇵', label: 'Manga',   color: '#e74c3c' },
-                manhwa:  { emoji: '🇰🇷', label: 'Manhwa',  color: '#3498db' },
-                manhua:  { emoji: '🇨🇳', label: 'Manhua',  color: '#e67e22' },
-                comics:  { emoji: '🦸', label: 'Comics',  color: '#9b59b6' }
-            };
-            const t = map[type] || { emoji: '📖', label: type || 'Manga', color: '#555' };
-            return `<div class="type-badge" style="background:${t.color}">${t.emoji} ${t.label}</div>`;
-        }
-
-        // ============================================================
-        // 2. CHIPS FILTER TIPE & GENRE
-        // ============================================================
-        function setFilterTipe(chipEl) {
-            document.querySelectorAll('#chips-tipe .chip').forEach(c => c.classList.remove('active'));
-            chipEl.classList.add('active');
-            filterTipeAktif  = chipEl.dataset.value;
-            filterGenreAktif = 'all';
-            resetChips('chips-genre');
-            muatDaftarEkstensi();
-        }
-
-        function setFilterGenre(chipEl) {
-            document.querySelectorAll('#chips-genre .chip').forEach(c => c.classList.remove('active'));
-            chipEl.classList.add('active');
-            filterGenreAktif = chipEl.dataset.value;
-            muatDaftarEkstensi();
-        }
-
-        // Muat daftar genre dari API lalu render chips
-        function muatChipsGenre() {
-            fetch('api/komik?action=genres')
-                .then(r => r.json())
-                .then(genres => {
-                    if (!genres || genres.length === 0) return;
-
-                    const container = document.getElementById('chips-genre');
-                    // Pertahankan chip "Semua Genre"
-                    container.innerHTML =
-                        '<button class="chip active" data-value="all" onclick="setFilterGenre(this)">✨ Semua Genre</button>';
-
-                    genres.forEach(g => {
-                        const btn = document.createElement('button');
-                        btn.className    = 'chip';
-                        btn.dataset.value = g;
-                        btn.textContent  = g;
-                        btn.onclick      = function() { setFilterGenre(this); };
-                        container.appendChild(btn);
-                    });
-
-                    document.getElementById('area-filter-genre').style.display = 'block';
-                })
-                .catch(() => {
-                    // Gagal muat genre — sembunyikan area genre
-                    document.getElementById('area-filter-genre').style.display = 'none';
-                });
-        }
-
-        // ============================================================
-        // 3. BUKA EKSTENSI → tampilkan search + filter browse genre
-        // ============================================================
-        function bukaEkstensi(namaEkstensi) {
-            namaEkstensiAktif = namaEkstensi;
-            document.getElementById('area-pencarian').style.display    = 'flex';
-            document.getElementById('area-filter-tipe').style.display  = 'none';
-            document.getElementById('area-filter-browse').style.display = 'block';
-            document.getElementById('konten-dinamis').innerHTML =
-                '<div class="grid-container" id="rak-konten"></div>';
-
-            const headerTitle = document.getElementById('app-title');
-            headerTitle.innerText    = `← Browse: ${namaEkstensi}`;
-            headerTitle.style.cursor = 'pointer';
-            headerTitle.onclick      = () => ubahTipe(tipeAktif);
-
-            document.getElementById('input-keyword').value = '';
-            filterBrowseAktif = 'all';
-            document.getElementById('chips-browse-genre').querySelectorAll('.chip')
-                .forEach(c => c.classList.toggle('active', c.dataset.value === 'all'));
-
-            eksekusiAmbilAPI('');
-        }
-
-        // Filter genre pada hasil browse (client-side filtering)
-        function setFilterBrowse(chipEl) {
-            document.querySelectorAll('#chips-browse-genre .chip').forEach(c => c.classList.remove('active'));
-            chipEl.classList.add('active');
-            filterBrowseAktif = chipEl.dataset.value;
-            renderHasilBrowse(dataBrowseSaatIni);
-        }
-
-        function pemicuCariManga() {
-            eksekusiAmbilAPI(document.getElementById('input-keyword').value);
-        }
-
-        document.getElementById('input-keyword').addEventListener('keypress', e => {
-            if (e.key === 'Enter') pemicuCariManga();
-        });
-
-        // ============================================================
-        // 4. SEARCH MANGA via API
-        // ============================================================
-        function eksekusiAmbilAPI(keyword) {
-
+// ============================================================
+// 2. MUAT DAFTAR EKSTENSI
+// ============================================================
+function muatDaftarEkstensi() {
     const rak = document.getElementById('rak-konten');
-
-    rak.innerHTML =
-        '<p style="text-align:center;">Sedang mencari komik...</p>';
-
-    let url =
-        'api/scrape?search=' + encodeURIComponent(keyword) +
-        '&type=' + encodeURIComponent(filterTipeAktif) +
-        '&genre=' + encodeURIComponent(filterBrowseAktif);
-
-    fetch(url)
+    if (!rak) return;
+    rak.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:20px;color:#aaa;">Memuat ekstensi...</p>';
+    fetch(`api/${tipeAktif}?search=`)
         .then(r => r.json())
         .then(data => {
-
-            dataBrowseSaatIni = data || [];
-
-            bangunChipsBrowseGenre(dataBrowseSaatIni);
-
-            renderHasilBrowse(dataBrowseSaatIni);
-
+            dataEkstensiSaatIni = data || [];
+            renderDaftarEkstensi();
         })
-        .catch(err => {
-            console.error(err);
+        .catch(() => {
+            rak.innerHTML = '<p style="color:red;text-align:center;grid-column:1/-1;padding:20px;">Gagal terhubung ke database.</p>';
         });
 }
 
-        // Bangun chips genre dari hasil scrape
-        function bangunChipsBrowseGenre(data) {
-            const genreSet = new Set();
-            data.forEach(komik => {
-                if (komik.genres) komik.genres.forEach(g => genreSet.add(g));
+function renderDaftarEkstensi() {
+    const rak = document.getElementById('rak-konten');
+    if (!rak) return;
+
+    let filtered = dataEkstensiSaatIni;
+    if (filterTipeAktif !== 'all') {
+        filtered = filtered.filter(item => item.type && item.type.toLowerCase() === filterTipeAktif);
+    }
+    
+    if (filtered.length === 0) {
+        rak.innerHTML = '<p style="text-align:center;grid-column:1/-1;color:#aaa;padding:40px;">Tidak ada ekstensi ditemukan.</p>';
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(item => {
+        const info      = item.version ? item.version : (item.site || '-');
+        const logo      = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name.charAt(0))}&background=2c2c2c&color=fff&size=256`;
+        const typeBadge = item.type ? getBadgeTipe(item.type) : '';
+        const safeName  = item.name.replace(/'/g, "\\'");
+
+        html += `
+        <div class="card" style="background-image:url('${logo}')" onclick="bukaEkstensi('${safeName}')">
+            <div class="card-overlay">
+                ${typeBadge}
+                <div class="judul">${item.name}</div>
+                <div class="badge">${info} • ${item.lang.toUpperCase()}</div>
+            </div>
+        </div>`;
+    });
+    rak.innerHTML = html;
+}
+
+function getBadgeTipe(type) {
+    const map = {
+        manga:   { emoji: '🇯🇵', label: 'Manga',   color: '#e74c3c' },
+        manhwa:  { emoji: '🇰🇷', label: 'Manhwa',  color: '#3498db' },
+        manhua:  { emoji: '🇨🇳', label: 'Manhua',  color: '#e67e22' },
+        comics:  { emoji: '🦸',  label: 'Comics',  color: '#9b59b6' },
+        webtoon: { emoji: '📱',  label: 'Webtoon', color: '#27ae60' }
+    };
+    const t = map[(type||'').toLowerCase()] || { emoji: '📖', label: type, color: '#555' };
+    return `<div class="type-badge" style="background:${t.color}">${t.emoji} ${t.label}</div>`;
+}
+
+// ============================================================
+// 3. FILTER CHIPS
+// ============================================================
+function setFilterTipe(chipEl) {
+    document.querySelectorAll('#chips-tipe .chip').forEach(c => c.classList.remove('active'));
+    chipEl.classList.add('active');
+    filterTipeAktif  = chipEl.dataset.value;
+    renderDaftarEkstensi();
+}
+
+// ============================================================
+// 4. BROWSE MANGA
+// ============================================================
+function bukaEkstensi(namaEkstensi) {
+    namaEkstensiAktif = namaEkstensi;
+    document.getElementById('area-pencarian').style.display     = 'flex';
+    document.getElementById('area-filter-tipe').style.display   = 'none';
+    document.getElementById('area-filter-browse').style.display = 'block';
+    document.getElementById('konten-dinamis').innerHTML =
+        '<div class="grid-container" id="rak-konten"></div>';
+
+    const h = document.getElementById('app-title');
+    h.innerText    = `← Browse: ${namaEkstensi}`;
+    h.style.cursor = 'pointer';
+    h.onclick      = () => ubahTipe(tipeAktif);
+
+    document.getElementById('input-keyword').value = '';
+    filterBrowseAktif = 'all';
+    resetChips('chips-browse-genre');
+    eksekusiAmbilAPI('');
+}
+
+function setFilterBrowse(chipEl) {
+    document.querySelectorAll('#chips-browse-genre .chip').forEach(c => c.classList.remove('active'));
+    chipEl.classList.add('active');
+    filterBrowseAktif = chipEl.dataset.value;
+    renderHasilBrowse(dataBrowseSaatIni);
+}
+
+function pemicuCariManga() {
+    eksekusiAmbilAPI(document.getElementById('input-keyword').value);
+}
+
+document.getElementById('input-keyword').addEventListener('keypress', e => {
+    if (e.key === 'Enter') pemicuCariManga();
+});
+
+// ============================================================
+// 5. SEARCH MANGA
+// ============================================================
+function eksekusiAmbilAPI(keyword) {
+    const rak = document.getElementById('rak-konten');
+    rak.innerHTML = '<p style="text-align:center;grid-column:1/-1;padding:20px;color:#aaa;">Sedang mencari komik...</p>';
+
+    fetch('api/scrape?search=' + encodeURIComponent(keyword))
+        .then(r => r.json())
+        .then(data => {
+            dataBrowseSaatIni = data || [];
+            filterBrowseAktif = 'all';
+            resetChips('chips-browse-genre');
+            bangunChipsBrowseGenre(dataBrowseSaatIni);
+            renderHasilBrowse(dataBrowseSaatIni);
+        })
+        .catch(err => {
+            console.error(err);
+            rak.innerHTML = '<p style="color:red;text-align:center;grid-column:1/-1;padding:20px;">Gagal memuat data manga.</p>';
+        });
+}
+
+function bangunChipsBrowseGenre(data) {
+    const genreSet = new Set();
+    data.forEach(komik => {
+        if (komik.genres) komik.genres.forEach(g => { if (g) genreSet.add(g.trim()); });
+    });
+    const container = document.getElementById('chips-browse-genre');
+    container.innerHTML = '<button class="chip active" data-value="all" onclick="setFilterBrowse(this)">✨ Semua</button>';
+    [...genreSet].sort().forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = 'chip'; btn.dataset.value = g; btn.textContent = g;
+        btn.onclick = function() { setFilterBrowse(this); };
+        container.appendChild(btn);
+    });
+}
+
+function renderHasilBrowse(data) {
+    const rak = document.getElementById('rak-konten');
+    const filtered = (filterBrowseAktif === 'all')
+        ? data
+        : data.filter(k => k.genres && k.genres.map(g => g.trim()).includes(filterBrowseAktif));
+
+    if (!filtered || filtered.length === 0) {
+        rak.innerHTML = '<p style="text-align:center;grid-column:1/-1;color:#aaa;padding:40px;">Tidak ada komik ditemukan.</p>';
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(komik => {
+        const genre     = (komik.genres && komik.genres.length > 0) ? komik.genres.join(', ') : 'Manga';
+        const safeJudul = komik.judul.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeUrl   = (komik.urlTarget || '').replace(/'/g, "\\'");
+
+        html += `<div class="card" style="background-image:url('${komik.gambarSampul}')" onclick="bukaDetailManga(${komik.malId}, '${safeUrl}')">
+            <div class="card-overlay" style="padding:10px;">
+                <div class="judul" style="font-size:0.9em;font-weight:bold;">${komik.judul}</div>
+                <div style="font-size:0.7em;color:#8ab4f8;margin-bottom:8px;">${genre}</div>
+            </div>
+        </div>`;
+    });
+    rak.innerHTML = html;
+}
+
+// ============================================================
+// 6. HALAMAN DETAIL MANGA + TOMBOL LIBRARY
+// ============================================================
+function bukaDetailManga(malId, mangaUrl, lang) {
+    malIdDetailAktif   = malId;
+    mangaIdDetailAktif = mangaUrl || String(malId);
+    filterBahasaAktif  = lang || 'all';
+
+    document.getElementById('konten-dinamis').innerHTML =
+        "<p style='text-align:center;padding:40px;color:#aaa;'>Memuat detail manga...</p>";
+    document.getElementById('area-pencarian').style.display     = 'none';
+    document.getElementById('area-filter-browse').style.display = 'none';
+    document.getElementById('menu-utama').style.display         = 'none';
+    document.getElementById('area-filter-tipe').style.display   = 'none';
+
+    const h = document.getElementById('app-title');
+    h.innerText    = '← Kembali';
+    h.style.cursor = 'pointer';
+    h.onclick      = () => bukaEkstensi(namaEkstensiAktif);
+
+    fetch(`api/detail?malId=${malId}&lang=${filterBahasaAktif}`)
+        .then(r => r.json())
+        .then(komik => {
+            if (komik.error) {
+                document.getElementById('konten-dinamis').innerHTML =
+                    `<p style="color:red;text-align:center;padding:40px;">Error: ${komik.error}</p>`;
+                return;
+            }
+
+            dataMangaSaatIni = komik;
+            h.innerText = '← Detail: ' + komik.judul;
+
+            const synopsis = (komik.synopsis && komik.synopsis.trim() !== '')
+                ? komik.synopsis : 'Sinopsis tidak tersedia.';
+
+            let chapterHTML = '';
+            if (!komik.chapters || komik.chapters.length === 0) {
+                chapterHTML = `<p style="color:#888;padding:12px;">Belum ada chapter${filterBahasaAktif !== 'all' ? ' untuk bahasa yang dipilih' : ''}.</p>`;
+            } else {
+                komik.chapters.forEach(ch => {
+                    const langBadge = (filterBahasaAktif === 'all' && ch.translatedLanguage)
+                        ? `<span class="lang-badge lang-${ch.translatedLanguage}">${ch.translatedLanguage.toUpperCase()}</span>`
+                        : '';
+                    chapterHTML += `
+                    <div class="chapter-item" onclick="bukaRuangBaca('${ch.id}')">
+                        <div>
+                            <div class="chapter-num">Chapter ${ch.number} ${langBadge}</div>
+                            <div class="chapter-title">${ch.title || ''}</div>
+                        </div>
+                    </div>`;
+                });
+            }
+
+            const filterHTML = `
+            <div class="lang-filter">
+                <span style="font-size:0.8em;color:#aaa;margin-right:8px;">Filter:</span>
+                <button class="lang-btn ${filterBahasaAktif==='all'?'active':''}" onclick="gantiFilterBahasa('all')">🌐 Semua</button>
+                <button class="lang-btn ${filterBahasaAktif==='id' ?'active':''}" onclick="gantiFilterBahasa('id')">🇮🇩 Indonesia</button>
+                <button class="lang-btn ${filterBahasaAktif==='en' ?'active':''}" onclick="gantiFilterBahasa('en')">🇬🇧 English</button>
+            </div>`;
+
+            // Tombol library — cek dulu apakah sudah ada
+            const safeJudul = komik.judul.replace(/'/g, "\\'");
+            const safeCover = komik.gambarSampul.replace(/'/g, "\\'");
+            const safeId    = mangaIdDetailAktif.replace(/'/g, "\\'");
+
+            const tombolLibrary = statusLoginAktif.loggedIn
+                ? `<button id="btn-tambah-library"
+                        onclick="tambahKeLibrary('${safeId}','${safeJudul}','${safeCover}','manga')"
+                        class="btn-library-detail">
+                        🗂️ + Tambah ke Library
+                   </button>`
+                : `<button onclick="window.location.href='login.html'" class="btn-library-detail" style="background:#444;">
+                        🔑 Login untuk simpan ke Library
+                   </button>`;
+            
+            const tombolDownloaded = statusLoginAktif.loggedIn
+    ? `<button id="btn-tandai-downloaded"
+            onclick="tandaiDownloaded('${safeId}','${safeJudul}','${safeCover}')"
+            class="btn-downloaded-detail">
+            ⬇️ Tandai Downloaded
+       </button>`
+    : '';
+
+            document.getElementById('konten-dinamis').innerHTML = `
+            <div class="detail-container">
+                <div class="detail-cover" style="background-image:url('${komik.gambarSampul}')"></div>
+                <div class="detail-info">
+                    <h2>${komik.judul}</h2>
+                    <p style="color:#8ab4f8;">${komik.genres.join(', ')}</p>
+                    <div class="synopsis-box">${synopsis}</div>
+                    ${tombolLibrary}
+                    ${tombolDownloaded}
+                    ${filterHTML}
+                    <div class="chapter-list">${chapterHTML}</div>
+                </div>
+            </div>`;
+
+            catatKeHistory(malId, komik.judul, komik.gambarSampul, komik.genres.join(','));
+        })
+        .catch(e => {
+            console.error(e);
+            document.getElementById('konten-dinamis').innerHTML =
+                "<p style='color:red;text-align:center;padding:40px;'>Gagal memuat detail manga.</p>";
+        });
+}
+
+function gantiFilterBahasa(lang) {
+    if (lang === filterBahasaAktif) return;
+    bukaDetailManga(malIdDetailAktif, mangaIdDetailAktif, lang);
+}
+
+// ============================================================
+// 7. RUANG BACA
+// ============================================================
+function bukaRuangBaca(chapterId) {
+    document.getElementById('konten-dinamis').innerHTML =
+        "<p style='text-align:center;padding:40px;color:#aaa;'>Memuat chapter...</p>";
+
+    const h = document.getElementById('app-title');
+    h.innerText    = '← Kembali ke Detail';
+    h.style.cursor = 'pointer';
+    h.onclick      = () => bukaDetailManga(malIdDetailAktif, mangaIdDetailAktif, filterBahasaAktif);
+
+    fetch('api/read?chapterId=' + chapterId)
+        .then(r => r.json())
+        .then(pages => {
+            let html = '';
+            pages.forEach(page => {
+                html += `<img class="reader-page" src="${page.imageUrl}" loading="lazy">`;
             });
+            document.getElementById('konten-dinamis').innerHTML =
+                `<div class="reader-container">${html}</div>`;
+            window.scrollTo(0, 0);
+        })
+        .catch(e => {
+            console.error(e);
+            document.getElementById('konten-dinamis').innerHTML =
+                "<p style='color:red;text-align:center;padding:40px;'>Chapter gagal dimuat.</p>";
+        });
+}
 
-            const container = document.getElementById('chips-browse-genre');
-            container.innerHTML =
-                '<button class="chip active" data-value="all" onclick="setFilterBrowse(this)">✨ Semua</button>';
+// ============================================================
+// 8. LIBRARY
+// ============================================================
+function tambahKeLibrary(mangaId, judul, cover, type) {
+    if (!statusLoginAktif.loggedIn) {
+        alert('Kamu harus login dulu!');
+        window.location.href = 'login.html';
+        return;
+    }
 
-            [...genreSet].sort().forEach(g => {
-                const btn = document.createElement('button');
-                btn.className     = 'chip';
-                btn.dataset.value = g;
-                btn.textContent   = g;
-                btn.onclick       = function() { setFilterBrowse(this); };
-                container.appendChild(btn);
-            });
-        }
+    const formData = new URLSearchParams();
+    formData.append('mangaId', mangaId);
+    formData.append('judul',   judul);
+    formData.append('cover',   cover);
+    formData.append('type',    type || 'manga');
 
-        // Render kartu komik dengan filter genre aktif
-        function renderHasilBrowse(data) {
+    fetch('api/library', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            const btn = document.getElementById('btn-tambah-library');
+            if (data.success) {
+                if (btn) {
+                    btn.textContent        = '✅ Tersimpan di Library';
+                    btn.disabled           = true;
+                    btn.style.background   = '#27ae60';
+                    btn.style.cursor       = 'default';
+                }
+            } else {
+                if (btn) {
+                    btn.textContent        = '✅ Sudah di Library';
+                    btn.disabled           = true;
+                    btn.style.background   = '#555';
+                }
+            }
+        })
+        .catch(() => alert('Gagal menghubungi server.'));
+}
+
+function bukaHalamanLibrary() {
+    document.getElementById('btn-komik').className   = '';
+    document.getElementById('btn-novel').className   = '';
+    document.getElementById('btn-history').className = '';
+    document.getElementById('btn-library').className = 'active';
+    document.getElementById('area-pencarian').style.display     = 'none';
+    document.getElementById('area-filter-tipe').style.display   = 'none';
+    document.getElementById('area-filter-browse').style.display = 'none';
+    document.getElementById('menu-utama').style.display         = 'flex';
+    document.getElementById('btn-downloaded').className = '';
+    const h = document.getElementById('app-title');
+    h.innerText    = '🗂️ My Library';
+    h.style.cursor = 'default';
+    h.onclick      = null;
+
+    if (!statusLoginAktif.loggedIn) {
+        document.getElementById('konten-dinamis').innerHTML = `
+        <div style="text-align:center;padding:60px 20px;">
+            <div style="font-size:3em;margin-bottom:16px;">🔒</div>
+            <p style="color:#aaa;margin-bottom:20px;">Login dulu untuk melihat Library kamu.</p>
+            <button onclick="window.location.href='login.html'"
+                style="background:#8ab4f8;color:#121212;padding:10px 24px;border-radius:20px;font-size:1em;">
+                🔑 Login
+            </button>
+        </div>`;
+        return;
+    }
+
+    document.getElementById('konten-dinamis').innerHTML =
+        '<div class="grid-container" id="rak-konten"><p style="text-align:center;grid-column:1/-1;color:#aaa;padding:20px;">Memuat library...</p></div>';
+
+    fetch('api/library')
+        .then(r => r.json())
+        .then(data => {
             const rak = document.getElementById('rak-konten');
-
-            const filtered = (filterBrowseAktif === 'all')
-                ? data
-                : data.filter(k => k.genres && k.genres.includes(filterBrowseAktif));
-
-            if (!filtered || filtered.length === 0) {
-                rak.innerHTML = '<p style="text-align:center; grid-column:1/-1; color:#aaa; padding:40px;">Tidak ada komik ditemukan.</p>';
+            if (data.error) {
+                rak.innerHTML = `<p style="color:red;text-align:center;grid-column:1/-1;">${data.error}</p>`;
+                return;
+            }
+            if (!data || data.length === 0) {
+                rak.innerHTML = `
+                <div style="text-align:center;grid-column:1/-1;padding:60px 20px;">
+                    <div style="font-size:3em;margin-bottom:16px;">📭</div>
+                    <p style="color:#aaa;">Library kamu masih kosong.</p>
+                    <p style="color:#666;font-size:0.85em;">Buka detail manga dan klik "+ Tambah ke Library"</p>
+                </div>`;
                 return;
             }
 
             let html = '';
-            filtered.forEach(komik => {
-                const genre = (komik.genres && komik.genres.length > 0)
-                              ? komik.genres.join(', ') : 'Manga';
+            data.forEach(item => {
+                const cover     = item.cover || `https://ui-avatars.com/api/?name=${encodeURIComponent((item.judul||'?').charAt(0))}&background=2c2c2c&color=fff&size=256`;
+                const safeId    = (item.mangaId || '').replace(/'/g, "\\'");
+                const safeJudul = (item.judul || 'Unknown').replace(/'/g, "\\'");
+
                 html += `
-                <div class="card" style="background-image:url('${komik.gambarSampul}')" onclick="bukaDetailManga(${komik.malId})">
+                <div class="card" style="background-image:url('${cover}')">
                     <div class="card-overlay" style="padding:10px;">
-                        <div class="judul" style="font-size:0.9em;font-weight:bold;">${komik.judul}</div>
-                        <div style="font-size:0.7em;color:#8ab4f8;margin-bottom:10px;">${genre}</div>
-                        <button
-                            onclick="event.stopPropagation(); simpanKeLibrary('${komik.urlTarget}','${komik.judul.replace(/'/g,"\\'")}','manga','${genre}')"
-                            style="background:#e74c3c;color:white;border:none;width:100%;padding:6px;border-radius:4px;cursor:pointer;">
-                            💾 Simpan
+                        <div class="judul" style="font-size:0.88em;font-weight:bold;">${item.judul || 'Unknown'}</div>
+                        <div class="badge" style="margin-bottom:8px;">${item.contentType || 'manga'}</div>
+                        <button onclick="event.stopPropagation();hapusDariLibrary('${safeId}','${safeJudul}')"
+                            style="background:#e74c3c;color:white;border:none;width:100%;
+                                   padding:5px;border-radius:4px;cursor:pointer;font-size:0.75em;">
+                            🗑️ Hapus dari Library
                         </button>
                     </div>
                 </div>`;
             });
-
             rak.innerHTML = html;
-        }
+        })
+        .catch(() => {
+            document.getElementById('rak-konten').innerHTML =
+                '<p style="color:red;text-align:center;grid-column:1/-1;">Gagal memuat library.</p>';
+        });
+}
 
-        // ============================================================
-        // 5. HALAMAN DETAIL MANGA
-        // ============================================================
-        function bukaDetailManga(malId, lang) {
-            malIdDetailAktif  = malId;
-            filterBahasaAktif = lang || 'all';
+function hapusDariLibrary(mangaId, judul) {
+    if (!confirm(`Hapus "${judul}" dari library?`)) return;
 
-            document.getElementById('konten-dinamis').innerHTML =
-                "<p style='text-align:center;padding:40px;color:#aaa;'>Memuat detail manga...</p>";
-            document.getElementById('area-pencarian').style.display      = 'none';
-            document.getElementById('area-filter-browse').style.display  = 'none';
-            document.getElementById('menu-utama').style.display          = 'none';
-            document.getElementById('area-filter-tipe').style.display    = 'none';
+    const formData = new URLSearchParams();
+    formData.append('_method', 'DELETE');
+    formData.append('mangaId', mangaId);
 
-            const headerTitle = document.getElementById('app-title');
-            headerTitle.innerText    = '← Kembali';
-            headerTitle.style.cursor = 'pointer';
-            headerTitle.onclick      = () => bukaEkstensi(namaEkstensiAktif);
+    fetch('api/library', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) bukaHalamanLibrary();
+            else alert(data.message || 'Gagal menghapus.');
+        })
+        .catch(() => alert('Gagal menghubungi server.'));
+}
 
-            fetch(`api/detail?malId=${malId}&lang=${filterBahasaAktif}`)
-                .then(r => r.json())
-                .then(komik => {
+// ============================================================
+// 9. HISTORY
+// ============================================================
+function catatKeHistory(mangaId, judul, gambarSampul, tags) {
+    const formData = new URLSearchParams();
+    formData.append('mangaId',      mangaId);
+    formData.append('judul',        judul);
+    formData.append('gambarSampul', gambarSampul);
+    formData.append('tags',         tags);
+    fetch('api/history', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => { if (data.status !== 'success') console.warn('History:', data.message); })
+        .catch(err => console.warn('Gagal catat history:', err));
+}
 
-                    if (komik.error) {
-                        document.getElementById('konten-dinamis').innerHTML =
-                            `<p style="color:red;text-align:center;padding:40px;">Error: ${komik.error}</p>`;
-                        return;
-                    }
+function bukaHalamanHistory() {
+    document.getElementById('btn-komik').className   = '';
+    document.getElementById('btn-novel').className   = '';
+    document.getElementById('btn-history').className = 'active';
+    document.getElementById('btn-library').className = '';
+    document.getElementById('area-pencarian').style.display     = 'none';
+    document.getElementById('area-filter-tipe').style.display   = 'none';
+    document.getElementById('area-filter-browse').style.display = 'none';
+    document.getElementById('menu-utama').style.display         = 'flex';
+    document.getElementById('btn-downloaded').className = '';
+    const h = document.getElementById('app-title');
+    h.innerText    = '🕒 Reading History';
+    h.style.cursor = 'default';
+    h.onclick      = null;
 
-                    dataMangaSaatIni = komik;
-                    headerTitle.innerText = '← Detail: ' + komik.judul;
+    document.getElementById('konten-dinamis').innerHTML =
+        '<div class="grid-container" id="rak-konten"><p style="text-align:center;grid-column:1/-1;color:#aaa;padding:20px;">Memuat riwayat...</p></div>';
 
-                    const synopsis = (komik.synopsis && komik.synopsis.trim() !== '')
-                        ? komik.synopsis : 'Sinopsis tidak tersedia.';
-
-                    let chapterHTML = '';
-                    if (!komik.chapters || komik.chapters.length === 0) {
-                        chapterHTML = `<p style="color:#888;padding:12px;">
-                            Belum ada chapter${filterBahasaAktif !== 'all' ? ' untuk bahasa yang dipilih' : ''}.
-                        </p>`;
-                    } else {
-                        komik.chapters.forEach(ch => {
-                            const langBadge = (filterBahasaAktif === 'all' && ch.translatedLanguage)
-                                ? `<span class="lang-badge lang-${ch.translatedLanguage}">${ch.translatedLanguage.toUpperCase()}</span>`
-                                : '';
-                            chapterHTML += `
-                            <div class="chapter-item" onclick="bukaRuangBaca('${ch.id}')">
-                                <div>
-                                    <div class="chapter-num">Chapter ${ch.number} ${langBadge}</div>
-                                    <div class="chapter-title">${ch.title}</div>
-                                </div>
-                            </div>`;
-                        });
-                    }
-
-                    const filterHTML = `
-                    <div class="lang-filter">
-                        <span style="font-size:0.8em;color:#aaa;margin-right:8px;">Filter:</span>
-                        <button class="lang-btn ${filterBahasaAktif === 'all' ? 'active' : ''}" onclick="gantiFilterBahasa('all')">🌐 Semua</button>
-                        <button class="lang-btn ${filterBahasaAktif === 'id'  ? 'active' : ''}" onclick="gantiFilterBahasa('id')">🇮🇩 Indonesia</button>
-                        <button class="lang-btn ${filterBahasaAktif === 'en'  ? 'active' : ''}" onclick="gantiFilterBahasa('en')">🇬🇧 English</button>
-                    </div>`;
-
-                    document.getElementById('konten-dinamis').innerHTML = `
-                    <div class="detail-container">
-                        <div class="detail-cover" style="background-image:url('${komik.gambarSampul}')"></div>
-                        <div class="detail-info">
-                            <h2>${komik.judul}</h2>
-                            <p>${komik.genres.join(', ')}</p>
-                            <div class="synopsis-box">${synopsis}</div>
-                            ${filterHTML}
-                            <div class="chapter-list">${chapterHTML}</div>
-                        </div>
-                    </div>`;
-
-                    catatKeHistory(malId, komik.judul, komik.gambarSampul, komik.genres.join(','));
-                })
-                .catch(e => {
-                    console.error(e);
-                    document.getElementById('konten-dinamis').innerHTML =
-                        "<p style='color:red;text-align:center;'>Gagal memuat detail manga.</p>";
-                });
-        }
-
-        function gantiFilterBahasa(lang) {
-            if (lang === filterBahasaAktif) return;
-            bukaDetailManga(malIdDetailAktif, lang);
-        }
-
-        // ============================================================
-        // 6. RUANG BACA
-        // ============================================================
-        function bukaRuangBaca(chapterId) {
-            document.getElementById('konten-dinamis').innerHTML =
-                "<p style='text-align:center;padding:40px;color:#aaa;'>Memuat chapter...</p>";
-
-            const headerTitle = document.getElementById('app-title');
-            headerTitle.innerText    = '← Kembali ke Detail';
-            headerTitle.style.cursor = 'pointer';
-            headerTitle.onclick      = () => bukaDetailManga(malIdDetailAktif, filterBahasaAktif);
-
-            fetch('api/read?chapterId=' + chapterId)
-                .then(r => r.json())
-                .then(pages => {
-                    let html = '';
-                    pages.forEach(page => {
-                        html += `<img class="reader-page" src="${page.imageUrl}" loading="lazy">`;
-                    });
-                    document.getElementById('konten-dinamis').innerHTML =
-                        `<div class="reader-container">${html}</div>`;
-                    window.scrollTo(0, 0);
-                })
-                .catch(e => {
-                    console.error(e);
-                    document.getElementById('konten-dinamis').innerHTML =
-                        "<p style='color:red;text-align:center;'>Chapter gagal dimuat.</p>";
-                });
-        }
-
-        // ============================================================
-        // 7. READING HISTORY
-        // ============================================================
-        function catatKeHistory(mangaId, judul, gambarSampul, tags) {
-            const formData = new URLSearchParams();
-            formData.append('mangaId',      mangaId);
-            formData.append('judul',        judul);
-            formData.append('gambarSampul', gambarSampul);
-            formData.append('tags',         tags);
-
-            fetch('api/history', { method: 'POST', body: formData })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status !== 'success') {
-                        console.warn('History tidak tersimpan:', data.message);
-                    }
-                })
-                .catch(err => console.warn('Gagal catat history:', err));
-        }
-
-        function bukaHalamanHistory() {
-            document.getElementById('btn-komik').className   = '';
-            document.getElementById('btn-novel').className   = '';
-            document.getElementById('btn-history').className = 'active';
-            document.getElementById('area-pencarian').style.display      = 'none';
-            document.getElementById('area-filter-tipe').style.display    = 'none';
-            document.getElementById('area-filter-browse').style.display  = 'none';
-
-            const headerTitle = document.getElementById('app-title');
-            headerTitle.innerText    = '🕒 Reading History';
-            headerTitle.style.cursor = 'pointer';
-            headerTitle.onclick      = () => ubahTipe(tipeAktif);
-
-            const wadah = document.getElementById('konten-dinamis');
-            wadah.innerHTML = '<div class="grid-container" id="rak-konten"></div>';
+    fetch('api/history')
+        .then(r => r.json())
+        .then(data => {
             const rak = document.getElementById('rak-konten');
-            rak.innerHTML = '<p style="text-align:center; grid-column:1/-1; color:#aaa; padding:20px;">Memuat riwayat...</p>';
+            if (!data || data.length === 0) {
+                rak.innerHTML = '<p style="text-align:center;grid-column:1/-1;color:#aaa;">Belum ada riwayat membaca.</p>';
+                return;
+            }
+            let html = '';
+            data.forEach(item => {
+                html += `
+                <div class="card" style="background-image:url('${item.gambarSampul}')">
+                    <div class="card-overlay" style="padding:10px;">
+                        <div class="judul" style="font-size:0.9em;font-weight:bold;">${item.judul}</div>
+                        <div style="font-size:0.65em;color:#ffb74d;margin-top:5px;">🕒 ${item.waktuBaca}</div>
+                    </div>
+                </div>`;
+            });
+            rak.innerHTML = html;
+        })
+        .catch(() => {
+            document.getElementById('rak-konten').innerHTML =
+                '<p style="color:red;text-align:center;grid-column:1/-1;">Gagal memuat history.</p>';
+        });
+}
 
-            fetch('api/history')
-                .then(r => r.json())
-                .then(data => {
-                    let html = '';
-                    if (!data || data.length === 0) {
-                        html = '<p style="text-align:center; grid-column:1/-1; color:#aaa;">Belum ada riwayat membaca.</p>';
-                    } else {
-                        data.forEach(item => {
-                            html += `
-                            <div class="card" style="background-image:url('${item.gambarSampul}')">
-                                <div class="card-overlay" style="padding:10px;">
-                                    <div class="judul" style="font-size:0.9em;font-weight:bold;">${item.judul}</div>
-                                    <div style="font-size:0.65em;color:#ffb74d;margin-top:5px;">🕒 ${item.waktuBaca}</div>
-                                </div>
-                            </div>`;
-                        });
-                    }
-                    rak.innerHTML = html;
-                })
-                .catch(() => {
-                    rak.innerHTML = '<p style="color:red; text-align:center; grid-column:1/-1;">Gagal memuat history.</p>';
-                });
-        }
+// ============================================================
+// 10. SIMPAN KE LIBRARY (lama — tetap ada untuk kompatibilitas)
+// ============================================================
+function simpanKeLibrary(id, judul, type, tags) {
+    const formData = new URLSearchParams();
+    formData.append('id',    id);
+    formData.append('judul', judul);
+    formData.append('type',  type);
+    formData.append('tags',  tags);
+    fetch('api/save', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(() => alert(`🎉 "${judul}" berhasil disimpan!`))
+        .catch(() => alert('Gagal menyimpan.'));
+}
 
-        // ============================================================
-        // 8. SIMPAN KE LIBRARY
-        // ============================================================
-        function simpanKeLibrary(id, judul, type, tags) {
-            const formData = new URLSearchParams();
-            formData.append('id',    id);
-            formData.append('judul', judul);
-            formData.append('type',  type);
-            formData.append('tags',  tags);
-            fetch('api/save', { method: 'POST', body: formData })
-                .then(r => r.json())
-                .then(() => alert(`🎉 "${judul}" berhasil disimpan ke My Library!`))
-                .catch(() => alert('Gagal menyimpan ke library.'));
-        }
+// ============================================================
+// 11. AKUN & PANEL ADMIN
+// ============================================================
+function cekStatusLogin() {
+    fetch('api/login')
+        .then(r => r.json())
+        .then(data => { statusLoginAktif = data; renderAreaAkun(); })
+        .catch(() => { statusLoginAktif = { loggedIn: false }; renderAreaAkun(); });
+}
 
-        // ============================================================
-        // Init
-        // ============================================================
-        document.getElementById('konten-dinamis').innerHTML =
-            '<div class="grid-container" id="rak-konten"></div>';
-        ubahTipe('komik');
-    </script>
-    <script src="js/history.js"></script>
+function renderAreaAkun() {
+    const area     = document.getElementById('area-akun');
+    const btnAdmin = document.getElementById('btn-admin');
+    if (statusLoginAktif.loggedIn) {
+        area.innerHTML = `
+            <span style="color:#aaa;font-size:0.9em;">👤 ${statusLoginAktif.username}${statusLoginAktif.role==='admin'?' (admin)':''}</span>
+            <button onclick="logout()" style="background-color:#444;">🚪 Logout</button>`;
+        btnAdmin.style.display = (statusLoginAktif.role === 'admin') ? 'flex' : 'none';
+    } else {
+        area.innerHTML = `<button onclick="window.location.href='login.html'" style="background-color:#8ab4f8;color:#121212;">🔑 Login / Daftar</button>`;
+        btnAdmin.style.display = 'none';
+    }
+}
+
+function logout() {
+    const formData = new URLSearchParams();
+    formData.append('action', 'logout');
+    fetch('api/login', { method: 'POST', body: formData }).then(() => cekStatusLogin());
+}
+
+function bukaPanelAdmin() {
+    document.getElementById('area-pencarian').style.display     = 'none';
+    document.getElementById('area-filter-tipe').style.display   = 'none';
+    document.getElementById('area-filter-browse').style.display = 'none';
+    document.getElementById('btn-downloaded').className = '';
+    const h = document.getElementById('app-title');
+    h.innerText    = '🛠️ Panel Admin - Kelola User';
+    h.style.cursor = 'pointer';
+    h.onclick      = () => ubahTipe(tipeAktif);
+
+    const wadah = document.getElementById('konten-dinamis');
+    wadah.innerHTML = '<p style="text-align:center;padding:20px;color:#aaa;">Memuat daftar user...</p>';
+
+    fetch('api/admin')
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                wadah.innerHTML = `<p style="color:red;text-align:center;padding:40px;">${data.error}</p>`;
+                return;
+            }
+            let html = `
+            <div style="padding:20px;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead><tr style="text-align:left;color:#aaa;border-bottom:1px solid #333;">
+                        <th style="padding:10px;">ID</th>
+                        <th style="padding:10px;">Username</th>
+                        <th style="padding:10px;">Role</th>
+                        <th style="padding:10px;"></th>
+                    </tr></thead><tbody>`;
+            data.forEach(u => {
+                html += `<tr style="border-bottom:1px solid #2c2c2c;">
+                    <td style="padding:10px;">${u.id}</td>
+                    <td style="padding:10px;">${u.username}</td>
+                    <td style="padding:10px;">${u.role}</td>
+                    <td style="padding:10px;">
+                        ${u.role==='admin'
+                            ? '<span style="color:#666;font-size:0.85em;">akun admin</span>'
+                            : `<button onclick="hapusUserAdmin(${u.id})" style="background-color:#e74c3c;">🗑️ Hapus</button>`}
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            wadah.innerHTML = html;
+        })
+        .catch(() => {
+            wadah.innerHTML = '<p style="color:red;text-align:center;padding:40px;">Gagal memuat daftar user.</p>';
+        });
+}
+
+function hapusUserAdmin(id) {
+    if (!confirm('Yakin mau hapus user ini?')) return;
+    const formData = new URLSearchParams();
+    formData.append('id', id);
+    fetch('api/admin', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') bukaPanelAdmin();
+            else alert(data.message || 'Gagal menghapus user.');
+        })
+        .catch(() => alert('Gagal terhubung ke server.'));
+}
+
+// ── Tandai sebagai downloaded
+function tandaiDownloaded(mangaId, judul, cover) {
+    if (!statusLoginAktif.loggedIn) {
+        alert('Kamu harus login dulu!');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const btn = document.getElementById('btn-tandai-downloaded');
+    btn.textContent = '⏳ Menyimpan...';
+    btn.disabled    = true;
+
+    const formData = new URLSearchParams();
+    formData.append('mangaId', mangaId);
+    formData.append('judul',   judul);
+    formData.append('cover',   cover);
+
+    fetch('api/downloaded', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                btn.textContent      = '✅ Sudah Downloaded';
+                btn.style.background = '#27ae60';
+            } else {
+                btn.textContent      = '✅ Sudah Ditandai';
+                btn.style.background = '#555';
+            }
+        })
+        .catch(() => {
+            btn.textContent  = '❌ Gagal, coba lagi';
+            btn.disabled     = false;
+        });
+}
+
+// ── Buka halaman Downloaded
+function bukaHalamanDownloaded() {
+    document.getElementById('btn-komik').className      = '';
+    document.getElementById('btn-novel').className      = '';
+    document.getElementById('btn-history').className    = '';
+    document.getElementById('btn-library').className    = '';
+    document.getElementById('btn-downloaded').className = 'active';
+    document.getElementById('area-pencarian').style.display     = 'none';
+    document.getElementById('area-filter-tipe').style.display   = 'none';
+    document.getElementById('area-filter-browse').style.display = 'none';
+    document.getElementById('menu-utama').style.display         = 'flex';
+
+    const h = document.getElementById('app-title');
+    h.innerText    = '⬇️ Downloaded';
+    h.style.cursor = 'default';
+    h.onclick      = null;
+
+    if (!statusLoginAktif.loggedIn) {
+        document.getElementById('konten-dinamis').innerHTML = `
+        <div style="text-align:center;padding:60px 20px;">
+            <div style="font-size:3em;margin-bottom:16px;">🔒</div>
+            <p style="color:#aaa;margin-bottom:20px;">Login dulu untuk melihat Downloaded.</p>
+            <button onclick="window.location.href='login.html'"
+                style="background:#8ab4f8;color:#121212;padding:10px 24px;border-radius:20px;">
+                🔑 Login
+            </button>
+        </div>`;
+        return;
+    }
+
+    document.getElementById('konten-dinamis').innerHTML =
+        '<div class="grid-container" id="rak-konten"><p style="text-align:center;grid-column:1/-1;color:#aaa;padding:20px;">Memuat...</p></div>';
+
+    fetch('api/downloaded')
+        .then(r => r.json())
+        .then(data => {
+            const rak = document.getElementById('rak-konten');
+            if (data.error) {
+                rak.innerHTML = `<p style="color:red;text-align:center;grid-column:1/-1;">${data.error}</p>`;
+                return;
+            }
+            if (!data || data.length === 0) {
+                rak.innerHTML = `
+                <div style="text-align:center;grid-column:1/-1;padding:60px 20px;">
+                    <div style="font-size:3em;margin-bottom:16px;">📭</div>
+                    <p style="color:#aaa;">Belum ada manga yang ditandai downloaded.</p>
+                    <p style="color:#666;font-size:0.85em;">Buka detail manga dan klik "⬇️ Tandai Downloaded"</p>
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                const cover     = item.cover || `https://ui-avatars.com/api/?name=${encodeURIComponent((item.judul||'?').charAt(0))}&background=2c2c2c&color=fff&size=256`;
+                const safeId    = (item.mangaId || '').replace(/'/g, "\\'");
+                const safeJudul = (item.judul || 'Unknown').replace(/'/g, "\\'");
+
+                html += `
+                <div class="card" style="background-image:url('${cover}')">
+                    <div class="card-overlay" style="padding:10px;">
+                        <div class="judul" style="font-size:0.88em;font-weight:bold;">${item.judul || 'Unknown'}</div>
+                        <div class="badge" style="margin-bottom:8px;">⬇️ Downloaded</div>
+                        <button onclick="event.stopPropagation();hapusDownloaded('${safeId}','${safeJudul}')"
+                            style="background:#e74c3c;color:white;border:none;width:100%;
+                                   padding:5px;border-radius:4px;cursor:pointer;font-size:0.75em;">
+                            🗑️ Hapus
+                        </button>
+                    </div>
+                </div>`;
+            });
+            rak.innerHTML = html;
+        })
+        .catch(() => {
+            document.getElementById('rak-konten').innerHTML =
+                '<p style="color:red;text-align:center;grid-column:1/-1;">Gagal memuat.</p>';
+        });
+}
+
+// ── Hapus dari downloaded
+function hapusDownloaded(mangaId, judul) {
+    if (!confirm(`Hapus "${judul}" dari downloaded?`)) return;
+
+    const formData = new URLSearchParams();
+    formData.append('_method', 'DELETE');
+    formData.append('mangaId', mangaId);
+
+    fetch('api/downloaded', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) bukaHalamanDownloaded();
+            else alert(data.message || 'Gagal menghapus.');
+        })
+        .catch(() => alert('Gagal menghubungi server.'));
+}
+
+// ============================================================
+// INIT
+// ============================================================
+ubahTipe('komik');
+cekStatusLogin();
+</script>
+<script src="js/history.js"></script>
 </body>
 </html>
