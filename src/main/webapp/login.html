@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — NeoYomi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --bg-deep:       #08080c;
+            --accent:        #a78bfa;
+            --accent-dim:    #7c5cbf;
+            --accent-bright: #c4b1ff;
+            --accent-2:      #f5c873;
+            --text-1:        #f2f2f7;
+            --text-2:        #92929f;
+            --text-3:        #56566c;
+            --red:           #e05a5a;
+            --ease:          cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-1);
+            min-height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ══ CANVAS ══ */
+        #wave-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ══ SCENE ══ */
+        .scene {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* ══ CARD — menyatu, tanpa sekat keras ══ */
+        .card {
+            width: 100%;
+            max-width: 400px;
+            /* background sangat transparan, border nyaris tak terlihat */
+            background: rgba(12,12,18,0.55);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(167,139,250,0.08);
+            border-radius: 22px;
+            padding: 44px 40px 40px;
+            animation: cardIn 0.8s var(--ease) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(32px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+
+        /* ══ LOGO ══ */
+        .logo-mark {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.55rem;
+            letter-spacing: -0.02em;
+            user-select: none;
+            margin-bottom: 32px;
+            display: block;
+            animation: fadeUp 0.6s 0.15s var(--ease) both;
+        }
+        .logo-neo  { color: var(--accent); }
+        .logo-yomi { color: var(--text-1); }
+
+        /* ══ FORM TITLE ══ */
+        .form-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-1);
+            margin-bottom: 5px;
+            transition: opacity 0.2s, transform 0.25s var(--ease);
+            animation: fadeUp 0.6s 0.25s var(--ease) both;
+        }
+        .form-desc {
+            font-size: 0.81rem;
+            color: var(--text-3);
+            margin-bottom: 28px;
+            transition: opacity 0.2s, transform 0.25s var(--ease);
+            animation: fadeUp 0.6s 0.3s var(--ease) both;
+        }
+
+        /* ══ FIELDS ══ */
+        .field-wrap {
+            margin-bottom: 14px;
+            animation: fadeUp 0.55s var(--ease) both;
+        }
+        .field-wrap:nth-child(1) { animation-delay: 0.38s; }
+        .field-wrap:nth-child(2) { animation-delay: 0.46s; }
+
+        .field-label {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-3);
+            margin-bottom: 7px;
+            transition: color 0.18s;
+        }
+        .field-wrap:focus-within .field-label { color: var(--accent); }
+
+        .field-input {
+            width: 100%;
+            padding: 11px 15px;
+            /* input juga ringan, menyatu */
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(167,139,250,0.1);
+            border-radius: 10px;
+            color: var(--text-1);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            appearance: none;
+            transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+        }
+        .field-input::placeholder { color: var(--text-3); }
+        .field-input:focus {
+            outline: none;
+            border-color: rgba(167,139,250,0.4);
+            background: rgba(167,139,250,0.04);
+            box-shadow: 0 0 0 3px rgba(167,139,250,0.06);
+        }
+
+        /* ══ PESAN ══ */
+        .pesan {
+            font-size: 0.78rem;
+            height: 18px;
+            margin: 8px 0 2px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            opacity: 0;
+            transform: translateY(-3px);
+            transition: opacity 0.22s, transform 0.22s var(--ease);
+        }
+        .pesan.show { opacity: 1; transform: translateY(0); }
+        .pesan.error   { color: var(--red); }
+        .pesan.success { color: #4ade80; }
+        .pesan.error::before, .pesan.success::before {
+            content: '';
+            width: 5px; height: 5px;
+            border-radius: 50%; flex-shrink: 0;
+        }
+        .pesan.error::before   { background: var(--red); }
+        .pesan.success::before { background: #4ade80; }
+
+        /* ══ BUTTON ══ */
+        .btn-submit {
+            width: 100%;
+            padding: 13px;
+            margin-top: 16px;
+            margin-bottom: 22px;
+            border-radius: 10px;
+            background: var(--accent);
+            color: #08080c;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.01em;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.15s, transform 0.12s var(--ease), box-shadow 0.15s;
+            animation: fadeUp 0.55s 0.54s var(--ease) both;
+        }
+        .btn-submit::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.18) 50%, transparent 75%);
+            transform: translateX(-100%);
+        }
+        .btn-submit:hover {
+            background: var(--accent-bright);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 28px rgba(167,139,250,0.25);
+        }
+        .btn-submit:hover::before {
+            transform: translateX(100%);
+            transition: transform 0.5s ease;
+        }
+        .btn-submit:active  { transform: none; box-shadow: none; }
+        .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ══ TOGGLE ══ */
+        .toggle-row {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-2);
+            animation: fadeIn 0.5s 0.62s both;
+        }
+        .toggle-btn {
+            background: none; border: none;
+            color: var(--accent);
+            font-family: 'Inter', sans-serif;
+            font-size: inherit; font-weight: 500;
+            cursor: pointer; padding: 0;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-color: rgba(167,139,250,0.28);
+            transition: color 0.15s, text-decoration-color 0.15s;
+        }
+        .toggle-btn:hover { color: var(--accent-bright); text-decoration-color: var(--accent-bright); }
+
+        /* ══ KEYFRAMES ══ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            body { overflow: auto; }
+            .card { padding: 36px 24px 32px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="wave-canvas"></canvas>
+
+<div class="scene">
+    <div class="card">
+
+        <span class="logo-mark">
+            <span class="logo-neo">Neo</span><span class="logo-yomi">Yomi</span>
+        </span>
+
+        <div class="form-title" id="judul-form">Selamat datang kembali</div>
+        <div class="form-desc"  id="form-desc">Login untuk lanjut baca koleksimu</div>
+
+        <div class="field-wrap">
+            <label class="field-label" for="input-username">Username</label>
+            <input class="field-input" type="text" id="input-username" placeholder="Masukkan username" autocomplete="username">
+        </div>
+        <div class="field-wrap">
+            <label class="field-label" for="input-password">Password</label>
+            <input class="field-input" type="password" id="input-password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <div class="pesan" id="pesan"></div>
+
+        <button class="btn-submit" id="btn-submit" onclick="submitForm()">Masuk</button>
+
+        <div class="toggle-row">
+            <span id="toggle-label">Belum punya akun?</span>
+            <button class="toggle-btn" id="toggle-link" onclick="toggleMode()"> Daftar sekarang</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   WAVE PARTICLES
+   Partikel terbang bebas ke atas,
+   berayun seperti ombak — tanpa kolom,
+   posisi awal & parameter semua random.
+══════════════════════════════════════ */
+(function () {
+    const canvas = document.getElementById('wave-canvas');
+    const ctx    = canvas.getContext('2d');
+
+    let W, H, ptcls = [];
+
+    const COLORS = [
+        [167, 139, 250],  // ungu
+        [196, 177, 255],  // ungu muda
+        [124,  92, 191],  // ungu dim
+        [245, 200, 115],  // kuning
+        [255, 218, 150],  // kuning muda
+    ];
+
+    function rand(a, b) { return Math.random() * (b - a) + a; }
+    function pick(arr)  { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function makeParticle() {
+        const [r, g, b] = pick(COLORS);
+        return {
+            x:       rand(0, W),
+            y:       rand(0, H),          // mulai di mana aja
+            vy:      rand(0.25, 0.9),     // kecepatan naik berbeda-beda
+            r:       rand(0.7, 2.5),
+            alpha:   rand(0.1, 0.45),
+            /* Ombak: tiap partikel punya amplitudo & frekuensi sendiri */
+            wAmp:    rand(8, 35),
+            wFreq:   rand(0.0006, 0.002),
+            wPhase:  rand(0, Math.PI * 2),
+            /* Drift halus naik-turun tambahan */
+            dAmp:    rand(2, 10),
+            dFreq:   rand(0.0003, 0.001),
+            dPhase:  rand(0, Math.PI * 2),
+            /* Twinkle opacity */
+            tPhase:  rand(0, Math.PI * 2),
+            tSpd:    rand(0.01, 0.028),
+            cr: r, cg: g, cb: b,
+        };
+    }
+
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+        // rebuild saat resize
+        const count = Math.floor((W * H) / 9000);
+        ptcls = Array.from({ length: Math.min(count, 200) }, makeParticle);
+    }
+
+    function tick(ts) {
+        ctx.clearRect(0, 0, W, H);
+
+        for (const p of ptcls) {
+            // naik
+            p.y -= p.vy;
+
+            // ombak horizontal — amplitudo & frekuensi bebas per partikel
+            const wx = Math.sin(ts * p.wFreq + p.wPhase) * p.wAmp;
+
+            // drift vertikal tambahan (nafas)
+            const dy = Math.sin(ts * p.dFreq + p.dPhase) * p.dAmp;
+
+            // twinkle
+            p.tPhase += p.tSpd;
+            const a = p.alpha * (0.5 + 0.5 * Math.sin(p.tPhase));
+
+            // fade top 15% layar
+            const fadeTop = Math.max(0, Math.min(1, p.y / (H * 0.15)));
+
+            ctx.beginPath();
+            ctx.arc(p.x + wx, p.y + dy, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${p.cr},${p.cg},${p.cb},${(a * fadeTop).toFixed(3)})`;
+            ctx.fill();
+
+            // reset kalau udah lewat atas
+            if (p.y < -10) {
+                p.y     = H + rand(10, 80);
+                p.x     = rand(0, W);
+                p.alpha = rand(0.1, 0.45);
+            }
+        }
+
+        requestAnimationFrame(tick);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    requestAnimationFrame(tick);
+})();
+
+/* ══ Form logic ══ */
+let modeRegister = false;
+
+function toggleMode() {
+    modeRegister = !modeRegister;
+    const title = document.getElementById('judul-form');
+    const desc  = document.getElementById('form-desc');
+    [title, desc].forEach(el => { el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; });
+    setTimeout(() => {
+        title.innerText = modeRegister ? 'Buat akun baru' : 'Selamat datang kembali';
+        desc.innerText  = modeRegister ? 'Daftarkan dirimu dan mulai baca' : 'Login untuk lanjut baca koleksimu';
+        [title, desc].forEach(el => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; });
+    }, 200);
+    document.getElementById('btn-submit').innerText   = modeRegister ? 'Daftar' : 'Masuk';
+    document.getElementById('toggle-label').innerText = modeRegister ? 'Sudah punya akun?' : 'Belum punya akun?';
+    document.getElementById('toggle-link').innerText  = modeRegister ? ' Login sekarang' : ' Daftar sekarang';
+    document.getElementById('input-password').autocomplete = modeRegister ? 'new-password' : 'current-password';
+    tampilkanPesan('', '');
+    document.getElementById('input-username').focus();
+}
+
+function tampilkanPesan(teks, tipe) {
+    const el = document.getElementById('pesan');
+    el.innerText = teks;
+    el.className = 'pesan' + (tipe ? ' ' + tipe + ' show' : '');
+}
+
+function submitForm() {
+    const username = document.getElementById('input-username').value.trim();
+    const password = document.getElementById('input-password').value;
+    if (!username || !password) { tampilkanPesan('Username dan password wajib diisi', 'error'); return; }
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerText = modeRegister ? 'Mendaftar...' : 'Masuk...';
+    const fd = new URLSearchParams();
+    fd.append('action', modeRegister ? 'register' : 'login');
+    fd.append('username', username);
+    fd.append('password', password);
+    fetch('api/login', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerText = modeRegister ? 'Daftar' : 'Masuk';
+            if (data.status === 'success') {
+                if (modeRegister) { tampilkanPesan('Akun berhasil dibuat! Silakan login.', 'success'); toggleMode(); }
+                else window.location.href = 'index.html';
+            } else {
+                tampilkanPesan(data.message || 'Terjadi kesalahan', 'error');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerText = modeRegister ? 'Daftar' : 'Masuk';
+            tampilkanPesan('Gagal terhubung ke server', 'error');
+        });
+}
+
+document.getElementById('input-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitForm();
+});
+
+fetch('api/login')
+    .then(r => r.json())
+    .then(d => { if (d.loggedIn) window.location.href = 'index.html'; })
+    .catch(() => {});
+</script>
+</body>
+</html>
